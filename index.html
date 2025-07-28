@@ -5,227 +5,279 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
 <title>The Tetris (Fanmade)</title>
 <style>
-:root{
-    --cell:min(8vw,30px);
-    --cols:10;
-    --rows:20;
-    --neon:#0ff;
-    --bg:#000;
+:root {
+  --cell: min(8vw, 30px);
+  --cols: 10;
+  --rows: 20;
+  --neon: #0ff;
+  --bg: #000;
 }
-*{box-sizing:border-box;font-family:Segoe UI,Tahoma,sans-serif}
-body{
-    margin:0;
-    background:var(--bg);
-    color:#fff;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    height:100vh;
-    overflow:hidden;
-    touch-action:none;
+* { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100vh;
+  overflow: hidden;
+  touch-action: none;
+  position: relative;
 }
-.wrapper{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    padding:6px;
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
 }
-canvas{
-    display:block;
-    border:2px solid var(--neon);
-    border-radius:6px;
+canvas {
+  display: block;
+  border: 2px solid var(--neon);
+  border-radius: 6px;
+  max-height: 70vh;
 }
-#scoreBoard{
-    margin:6px 0;
-    text-align:center;
-    font-size:14px;
+#scoreBoard {
+  margin: 6px 0;
+  text-align: center;
+  font-size: 14px;
 }
-#scoreBoard h2{
-    margin:0;
-    font-size:18px;
-    text-shadow:0 0 8px var(--neon);
+#scoreBoard h2 {
+  margin: 0;
+  font-size: 18px;
+  text-shadow: 0 0 8px var(--neon);
 }
-#controls{
-    display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:4px;
-    width:calc(var(--cols) * var(--cell));
-    margin-top:6px;
+#controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  width: calc(var(--cols) * var(--cell));
+  margin-top: 6px;
 }
-.btn{
-    background:#111;
-    border:1px solid var(--neon);
-    border-radius:8px;
-    color:var(--neon);
-    font-size:20px;
-    padding:10px 0;
-    user-select:none;
-    outline:none;
+.btn {
+  background: #111;
+  border: 1px solid var(--neon);
+  border-radius: 8px;
+  color: var(--neon);
+  font-size: 20px;
+  padding: 10px 0;
+  user-select: none;
 }
-.btn:active{
-    background:#0ff4;
-    transform:scale(.96);
+.btn:active {
+  background: #0ff4;
+  transform: scale(0.96);
 }
-footer{
-    font-size:12px;
-    text-align:center;
-    opacity:.5;
-    margin-top:8px;
+footer {
+  font-size: 12px;
+  text-align: center;
+  opacity: 0.5;
+  margin-top: 6px;
+}
+.reaction {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  font-size: 26px;
+  font-weight: bold;
+  color: #0ff;
+  text-shadow:
+    0 0 6px #0ff,
+    0 0 12px #0ff,
+    1px 1px 2px #000;
+  z-index: 9999;
+  pointer-events: none;
+  transition: all 0.8s ease;
+  opacity: 1;
 }
 </style>
 </head>
 <body>
 <div class="wrapper">
-    <canvas id="board"></canvas>
-    <div id="scoreBoard">
-        <h2>The Tetris <small style="font-size:12px;">(Fanmade)</small></h2>
-        <div>Skor <span id="score">0</span> | Level <span id="level">1</span> | Baris <span id="lines">0</span></div>
-    </div>
-    <div id="controls">
-        <button class="btn" id="left">←</button>
-        <button class="btn" id="rot">↻</button>
-        <button class="btn" id="right">→</button>
-        <button class="btn" id="soft">↓</button>
-        <button class="btn" id="hard">⇩</button>
-    </div>
+  <canvas id="board"></canvas>
+  <div id="scoreBoard">
+    <h2>The Tetris <small style="font-size:12px;">(Fanmade)</small></h2>
+    <div>Skor <span id="score">0</span> | Level <span id="level">1</span> | Baris <span id="lines">0</span></div>
+  </div>
+  <div id="controls">
+    <button class="btn" id="left">←</button>
+    <button class="btn" id="rot">↻</button>
+    <button class="btn" id="right">→</button>
+    <button class="btn" id="soft">↓</button>
+    <button class="btn" id="hard">⇩</button>
+  </div>
 </div>
 
 <footer>
-    The Tetris (Fanmade) Mobile Edition<br/>
-    Dibuat oleh <strong>Xobe Development</strong> • © 2025<br/>
-    Terinspirasi oleh Tetris klasik. Hak cipta asli milik pemilik resmi.
+  The Tetris (Fanmade) Mobile Edition • Dibuat oleh <strong>Xobe Development</strong> © 2025<br/>
+  Terinspirasi oleh Tetris klasik. Semua hak cipta milik pemilik resmi.
 </footer>
 
 <script>
-const COLS=10, ROWS=20, SIZE=Math.min(window.innerWidth*0.08, 30);
-const canvas=document.getElementById('board');
-const ctx=canvas.getContext('2d');
-canvas.width=COLS*SIZE; canvas.height=ROWS*SIZE;
+const COLS = 10, ROWS = 20, SIZE = Math.min(window.innerWidth * 0.08, 30);
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+canvas.width = COLS * SIZE;
+canvas.height = ROWS * SIZE;
+ctx.shadowBlur = 10;
+ctx.shadowColor = '#0ff';
 
-ctx.shadowBlur=10;
-ctx.shadowColor='#0ff';
-
-const SHAPES=[
-    [[1,1,1,1]], [[1,1],[1,1]], [[0,1,0],[1,1,1]],
-    [[0,1,1],[1,1,0]], [[1,1,0],[0,1,1]], [[1,0,0],[1,1,1]], [[0,0,1],[1,1,1]]
+// 🔺 Banyak varian blok
+const SHAPES = [
+  [[1,1,1,1]], // I
+  [[1,1],[1,1]], // O
+  [[0,1,0],[1,1,1]], // T
+  [[0,1,1],[1,1,0]], // S
+  [[1,1,0],[0,1,1]], // Z
+  [[1,0,0],[1,1,1]], // J
+  [[0,0,1],[1,1,1]], // L
+  [[1,1,1],[1,0,1]], // U
+  [[1,1,1],[0,1,0]], // +
+  [[1,1,0],[1,1,0]], // fat S
+  [[0,1,1],[0,1,1]], // fat Z
+  [[1,1,1],[0,0,1]], // custom L2
+  [[1,1,1],[0,0,1]], // r-hook
+  [[1,1,1,0],[0,0,1,1]], // snake long
+  [[1,1,1],[1,1,0]], // blocky corner
 ];
-const COLORS=['#0ff','#ff0','#f0f','#0f0','#f00','#00f','#fa0'];
+const COLORS = ['#0ff','#ff0','#f0f','#0f0','#f00','#00f','#fa0','#f8f','#8ff','#0fa','#fa8','#a0f','#f44','#4f4','#ff8'];
 
-let board=createMatrix(COLS,ROWS);
-let score=0, lines=0, level=1, lastTime=0, dropTime=0;
-let current={x:0,y:0,shape:[],color:''}, nextPiece=null;
+let board = createMatrix(COLS, ROWS);
+let score = 0, lines = 0, level = 1, lastTime = 0, dropTime = 0;
+let current = {}, nextPiece = null;
+
+const reactions = {
+  1: "Good!",
+  2: "Great!",
+  3: "Awesome!",
+  4: "AMAZING!!",
+  5: "INSANE!!",
+  6: "UNREAL!!"
+};
 
 function createMatrix(w,h){return Array.from({length:h},()=>Array(w).fill(0))}
 function drawCell(x,y,color,alpha=1){
-    ctx.globalAlpha=alpha;
-    ctx.fillStyle=color;
-    ctx.fillRect(x*SIZE,y*SIZE,SIZE-1,SIZE-1);
-    ctx.globalAlpha=1;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.fillRect(x*SIZE, y*SIZE, SIZE-1, SIZE-1);
+  ctx.globalAlpha = 1;
 }
-function drawMatrix(mat,ox=0,oy=0,color='#0ff',alpha=1){
-    mat.forEach((row,y)=>row.forEach((v,x)=>v&&drawCell(x+ox,y+oy,color,alpha)));
+function drawMatrix(mat, ox=0, oy=0, color='#0ff', alpha=1){
+  mat.forEach((row,y)=>row.forEach((v,x)=>v&&drawCell(x+ox,y+oy,color,alpha)));
 }
 function rotate(m){
-    const N=m.length, out=createMatrix(N,N);
-    for(let y=0;y<N;y++) for(let x=0;x<N;x++) out[x][N-1-y]=m[y][x];
-    return out;
+  const N = m.length, out = createMatrix(N,N);
+  for(let y=0; y<N; y++) for(let x=0; x<N; x++) out[x][N-1-y] = m[y][x];
+  return out;
 }
 function collide(p=current){
-    for(let y=0;y<p.shape.length;y++)
-        for(let x=0;x<p.shape[y].length;x++)
-            if(p.shape[y][x] && (board[y+p.y]?.[x+p.x]!==0)) return true;
-    return false;
+  for(let y=0;y<p.shape.length;y++)
+    for(let x=0;x<p.shape[y].length;x++)
+      if(p.shape[y][x] && (board[y+p.y]?.[x+p.x]!==0)) return true;
+  return false;
 }
 function merge(){
-    current.shape.forEach((r,y)=>r.forEach((v,x)=>v&&(board[y+current.y][x+current.x]=current.color)));
+  current.shape.forEach((r,y)=>r.forEach((v,x)=>v&&(board[y+current.y][x+current.x]=current.color)));
 }
 function lineClear(){
-    let cleared=0;
-    outer:for(let y=ROWS-1;y>=0;y--){
-        for(let x=0;x<COLS;x++) if(!board[y][x]) continue outer;
-        board.splice(y,1); board.unshift(Array(COLS).fill(0)); cleared++; y++;
-    }
-    if(cleared){
-        lines+=cleared;
-        score+=(cleared===4?800:cleared*100)*level;
-        level=Math.floor(lines/10)+1;
-        updateStats();
-    }
+  let cleared=0;
+  outer: for(let y=ROWS-1;y>=0;y--){
+    for(let x=0;x<COLS;x++) if(!board[y][x]) continue outer;
+    board.splice(y,1); board.unshift(Array(COLS).fill(0)); cleared++; y++;
+  }
+  if(cleared){
+    lines += cleared;
+    score += (cleared === 4 ? 800 : cleared * 100) * level;
+    level = Math.floor(lines/10) + 1;
+    updateStats();
+    showReaction(reactions[cleared] || "🔥");
+  }
+}
+function showReaction(text){
+  const el = document.createElement('div');
+  el.className = 'reaction';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform += ' scale(1.3) translateY(-20px)';
+  }, 50);
+  setTimeout(() => el.remove(), 1100);
 }
 function spawn(){
-    if(!nextPiece) nextPiece=randomPiece();
-    current.shape=nextPiece.shape;
-    current.color=nextPiece.color;
-    current.x=Math.floor((COLS-current.shape[0].length)/2);
-    current.y=0;
-    nextPiece=randomPiece();
-    if(collide()) resetGame();
+  if(!nextPiece) nextPiece = randomPiece();
+  current.shape = nextPiece.shape;
+  current.color = nextPiece.color;
+  current.x = Math.floor((COLS - current.shape[0].length) / 2);
+  current.y = 0;
+  nextPiece = randomPiece();
+  if(collide()) resetGame();
 }
 function randomPiece(){
-    const idx=Math.random()*SHAPES.length|0;
-    return {shape:SHAPES[idx],color:COLORS[idx]};
+  const idx = Math.floor(Math.random()*SHAPES.length);
+  return {shape: SHAPES[idx], color: COLORS[idx]};
 }
 function resetGame(){
-    board=createMatrix(COLS,ROWS); score=lines=0; level=1;
-    nextPiece=randomPiece();
-    spawn();
-    updateStats();
+  board = createMatrix(COLS, ROWS); score = lines = 0; level = 1;
+  nextPiece = randomPiece(); spawn(); updateStats();
 }
 function updateStats(){
-    document.getElementById('score').textContent=score;
-    document.getElementById('level').textContent=level;
-    document.getElementById('lines').textContent=lines;
+  document.getElementById('score').textContent = score;
+  document.getElementById('level').textContent = level;
+  document.getElementById('lines').textContent = lines;
 }
-function drop(){current.y++; if(collide()){current.y--; merge(); lineClear(); spawn();}}
-function hardDrop(){while(!collide()) current.y++; current.y--; merge(); lineClear(); spawn();}
-
-const actions={
-    left:()=>{current.x--;if(collide())current.x++},
-    right:()=>{current.x++;if(collide())current.x--},
-    rot:()=>{const r=rotate(current.shape),prev=current.shape; current.shape=r; if(collide())current.shape=prev},
-    soft:drop,
-    hard:hardDrop
+function drop(){
+  current.y++;
+  if(collide()){
+    current.y--; merge(); lineClear(); spawn();
+  }
+}
+function hardDrop(){
+  while(!collide()) current.y++;
+  current.y--; merge(); lineClear(); spawn();
+}
+const actions = {
+  left: ()=>{current.x--;if(collide())current.x++},
+  right: ()=>{current.x++;if(collide())current.x--},
+  rot: ()=>{const r=rotate(current.shape),p=current.shape; current.shape=r; if(collide())current.shape=p},
+  soft: drop,
+  hard: hardDrop
 };
 ['left','right','rot','soft','hard'].forEach(id=>{
-    ['touchstart','mousedown'].forEach(ev=>{
-        document.getElementById(id).addEventListener(ev,e=>{
-            e.preventDefault();
-            actions[id]();
-        });
-    });
+  ['touchstart','mousedown'].forEach(ev=>{
+    document.getElementById(id).addEventListener(ev,e=>{e.preventDefault();actions[id]()});
+  });
 });
-
 let sx,sy;
 canvas.addEventListener('touchstart',e=>{
-    const t=e.touches[0]; sx=t.clientX; sy=t.clientY;
+  const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
 });
 canvas.addEventListener('touchend',e=>{
-    const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-    if(Math.abs(dx)>Math.abs(dy)){
-        dx>30?actions.right():dx<-30?actions.left():0;
-    }else{
-        dy>40?actions.soft():dy<-40?actions.hard():0;
-    }
+  const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+  if(Math.abs(dx)>Math.abs(dy)){
+    dx>30 ? actions.right() : dx<-30 ? actions.left() : 0;
+  }else{
+    dy>40 ? actions.soft() : dy<-40 ? actions.hard() : 0;
+  }
 });
-
 function update(time){
-    if(!lastTime) lastTime=time;
-    const delta=time-lastTime;
-    lastTime=time;
-    dropTime+=delta;
-    const interval=1000/(level*.5+1);
-    if(dropTime>interval){drop();dropTime=0;}
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.shadowBlur=0;
-    drawMatrix(board,0,0,'#003',.3);
-    ctx.shadowBlur=10;
-    drawMatrix(board);
-    const ghost={...current}; while(!collide(ghost)) ghost.y++; ghost.y--;
-    drawMatrix(ghost.shape,ghost.x,ghost.y,ghost.color,.25);
-    drawMatrix(current.shape,current.x,current.y,current.color);
-    requestAnimationFrame(update);
+  if(!lastTime) lastTime = time;
+  const delta = time - lastTime;
+  lastTime = time;
+  dropTime += delta;
+  const interval = 1000 / (level * 0.5 + 1);
+  if(dropTime > interval){ drop(); dropTime = 0; }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.shadowBlur = 0;
+  drawMatrix(board, 0, 0, '#003', .3);
+  ctx.shadowBlur = 10;
+  drawMatrix(board);
+  const ghost = {...current}; while(!collide(ghost)) ghost.y++; ghost.y--;
+  drawMatrix(ghost.shape, ghost.x, ghost.y, ghost.color, .2);
+  drawMatrix(current.shape, current.x, current.y, current.color);
+  requestAnimationFrame(update);
 }
 resetGame();
 requestAnimationFrame(update);
